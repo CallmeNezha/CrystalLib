@@ -9,8 +9,7 @@ using namespace Crystal;
 
 int main(int argc, char** argv) {
 
-    double v = Functions::Add(2.0, 3.0);
-    printf("%f", v);
+    printf("Hello Crystal\n");
     getchar();
     return 0;
 }
