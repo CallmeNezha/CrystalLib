@@ -1,16 +1,15 @@
 #define CRYSTAL_LIB_EXPORT
 
 #include "CrystalLib.h"
+#include "helper.h"
 #include <cstdio>
 #include <memory>
+#include <limits>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
 
 
 namespace  Crystal {
-
-#define CC_ASSERT_RETURN(x, val)    if(!(x)) { assert(x); return val;}
-
 
     CRYSTAL_LIB_API bool Extract::ExtractPlane(
         const matX&          V
@@ -56,16 +55,46 @@ namespace  Crystal {
 
         cv::Mat points;
 
+        
 
     }
 
 
 
-    Crystal::matX Extract::searchNormalCluster(const matX& V, const matX& N, const vec3& majorAxis, const uint nCluster) {
-        std::unique_ptr<uint> counts(new uint[nCluster]{ 0 });
 
-        cv::Mat p;
-        cv::eigen2cv(V, p);
+    bool Extract::searchNormalCluster(const matX& V, const matX& N, const vec3& majorAxis, const uint nCluster, std::vector<uint>& indices, vec3& center) {
+
+        std::unique_ptr<uint[]> counts(new uint[nCluster]{ 0 });
+
+        //! opencv kmeans only supports float
+        cv::Mat normals((int)V.rows(), 1, CV_32FC3, cv::Scalar(0, 0, 0));
+
+        for (int i = 0; i < V.rows(); ++i) {
+            cv::Vec3f& p = normals.at<cv::Vec3f>(i);
+            p[0] = float(N(i, 0));
+            p[1] = float(N(i, 1));
+            p[2] = float(N(i, 2));
+        }
+        // !opencv kmeans only supports float
+        cv::Mat labels, centers; 
+
+        //! You should notice kmeans only supports float type
+        cv::kmeans(normals, nCluster, labels, cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
+
+
+        std::unique_ptr<vec3[]> centersNormed(new vec3[nCluster]{ vec3::Zero() });
+
+        for (uint i = 0; i < nCluster; ++i) {
+            const float* c = centers.ptr<float>(i);
+            ffloat norm = std::sqrt(c[0] * c[0] + c[1] * c[1] + c[2] * c[2]);
+            centersNormed[i] = vec3(c[0], c[1], c[2]) / norm;
+        }
+        const uint idx = helper::closestEuler(centersNormed.get(), majorAxis, nCluster);
+
+        indices.clear();
+        for (uint i = 0; i < labels.rows; ++i) if (idx == (uint)labels.at<int>(i)) indices.push_back(i);
+
+        return true;
     }
 
 }

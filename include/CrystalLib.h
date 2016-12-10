@@ -2,8 +2,8 @@
 // Created by admin on 2016/12/9.
 //
 
-#ifndef CRYSTALLIB_CRYSTALLIB_H
-#define CRYSTALLIB_CRYSTALLIB_H
+#ifndef __CRYSTALLIB_CRYSTALLIB_H__
+#define __CRYSTALLIB_CRYSTALLIB_H__
 
 #ifdef CRYSTAL_LIB_EXPORT
 #define CRYSTAL_LIB_API   __declspec(dllexport)
@@ -67,13 +67,15 @@ namespace Crystal
             , const ffloat rthold
         );
 
-        static matX searchNormalCluster(
+        static bool searchNormalCluster(
             const matX& V
             , const matX& N
             , const vec3& majorAxis
             , const uint nCluster
+            , std::vector<uint>& indices
+            , vec3& center
         );
     };
 }
 
-#endif //CRYSTALLIB_CRYSTALLIB_H
+#endif //__CRYSTALLIB_CRYSTALLIB_H__
