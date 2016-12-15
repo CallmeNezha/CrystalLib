@@ -67,13 +67,14 @@ namespace Crystal
             , const ffloat rthold
         );
 
-        static bool searchNormalCluster(
+        static bool searchMatchClusters(
             const matX& V
             , const matX& N
             , const vec3& majorAxis
             , const uint nCluster
-            , std::vector<uint>& indices
-            , vec3& center
+            , const uint nBest
+            , std::vector<std::vector<uint>>& indices
+            , std::vector<vec3>& centers
         );
     };
 }

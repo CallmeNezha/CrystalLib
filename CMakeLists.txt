@@ -51,7 +51,7 @@ set( CRYSTALLIB_SOURCE_FILES "src/CrystalLib.cpp" )
 include_directories( ${CRYSTALLIB_INCLUDE_DIRS} )
 add_definitions( ${CRYSTALLIB_DEFINITIONS} )
 add_library( ${PROJECT_NAME} SHARED ${CRYSTALLIB_SOURCE_FILES} )
-link_libraries( ${PROJECT_NAME} ${CRYSTALLIB_EXTRA_LIBS} )
+target_link_libraries( ${PROJECT_NAME} ${CRYSTALLIB_EXTRA_LIBS} )
 
 
 if ( BUILD_TEST )

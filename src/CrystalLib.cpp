@@ -2,8 +2,11 @@
 
 #include "CrystalLib.h"
 #include "helper.h"
+#include "DBSCAN.h"
 #include <cstdio>
 #include <memory>
+#include <algorithm>
+#include <numeric>
 #include <limits>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -38,7 +41,7 @@ namespace  Crystal {
         const vec3 upward =  trans.row(2);
 
         // Broad cluster based on normal
-        
+        return true;
 
     }
 
@@ -54,15 +57,16 @@ namespace  Crystal {
         vec3 bestMajorAxis = majorAxis;
 
         cv::Mat points;
-
-        
+        return matX();
 
     }
 
 
 
 
-    bool Extract::searchNormalCluster(const matX& V, const matX& N, const vec3& majorAxis, const uint nCluster, std::vector<uint>& indices, vec3& center) {
+    bool Extract::searchMatchClusters(const matX& V, const matX& N, const vec3& majorAxis, const uint nCluster, const uint nBest, std::vector<std::vector<uint>>& indices, std::vector<vec3>& centers) {
+
+        CC_ASSERT_RETURN(nBest < nCluster || nBest > 0 || nCluster > 0, false);
 
         std::unique_ptr<uint[]> counts(new uint[nCluster]{ 0 });
 
@@ -76,23 +80,57 @@ namespace  Crystal {
             p[2] = float(N(i, 2));
         }
         // !opencv kmeans only supports float
-        cv::Mat labels, centers; 
+        cv::Mat mlabels, mcenters; 
 
         //! You should notice kmeans only supports float type
-        cv::kmeans(normals, nCluster, labels, cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
+        cv::kmeans(normals, nCluster, mlabels, cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, mcenters);
 
 
-        std::unique_ptr<vec3[]> centersNormed(new vec3[nCluster]{ vec3::Zero() });
-
-        for (uint i = 0; i < nCluster; ++i) {
-            const float* c = centers.ptr<float>(i);
-            ffloat norm = std::sqrt(c[0] * c[0] + c[1] * c[1] + c[2] * c[2]);
-            centersNormed[i] = vec3(c[0], c[1], c[2]) / norm;
+        std::vector<vec3> centersNormed; centersNormed.resize(nCluster);
+        {
+            for (uint i = 0; i < nCluster; ++i) {
+                const float* c = mcenters.ptr<float>(i);
+                ffloat norm = std::sqrt(c[0] * c[0] + c[1] * c[1] + c[2] * c[2]);
+                centersNormed[i] = vec3(c[0], c[1], c[2]) / norm;
+            }
         }
-        const uint idx = helper::closestEuler(centersNormed.get(), majorAxis, nCluster);
 
-        indices.clear();
-        for (uint i = 0; i < labels.rows; ++i) if (idx == (uint)labels.at<int>(i)) indices.push_back(i);
+        // mcenters
+        // label 1,      |    label 2,      |     label3        | ...
+        // ------------------------------------------------------------
+        // mcenters[0]   |    mcenters[1]   |     mcenters[2]   | ...
+
+        // mlabels
+        // vertex index    |   label
+        // ------------------------------
+        // 0               |   label2
+        // 1               |   label1
+        // ....            |   ....
+
+        std::vector<uint> idxs(nCluster);
+        {
+            std::iota(idxs.begin(), idxs.end(), 0);
+            std::sort(idxs.begin(), idxs.end(), [&centersNormed, &majorAxis](uint i1, uint i2)->bool {
+                return helper::angle(centersNormed[i1], majorAxis) < helper::angle(centersNormed[i2], majorAxis);
+            });
+        }
+
+        centers.clear(); centers.resize(nBest);
+        for (uint i = 0; i < nBest; ++i) centers[i] = centersNormed[idxs[i]]; // Get first n centers
+
+        // idxston  - Old index map to new index
+        //  idxton[0]    |    idxton[1]    |    idxton[2]    |   idxton[3]
+        //  -1                2                 1                -1
+
+        std::vector<int> idxston(nCluster, -1);
+        for (uint i = 0; i < nBest; ++i) idxston[idxs[i]] = i; // Mask first n indices
+
+        indices.clear(); indices.resize(nBest);
+        for (uint iv = 0; iv < mlabels.rows; ++iv) {
+            const uint u = (uint)mlabels.at<int>(iv);
+            if (-1 != idxston[u]) indices[idxston[u]].push_back(iv);
+        }
+
 
         return true;
     }
