@@ -63,16 +63,16 @@ int main(int argc, char** argv) {
     pts.insert(pts.end(), pts4.begin(), pts4.end());
     pts.insert(pts.end(), pts5.begin(), pts5.end());
 
-    auto EuclidDistanceFunc = [](const Vec3f& v1, const Vec3f& v2)->float { return std::sqrt((v1.x-v2.x)*(v1.x-v2.x) + (v1.y-v2.y)*(v1.y-v2.y) + (v1.z-v2.z)*(v1.z-v2.z)); };
+    //auto EuclidDistanceFunc = [](const Vec3f& v1, const Vec3f& v2)->float { return 0; };
 
-    printf("%f\n", EuclidDistanceFunc(Vec3f{ 1.f,0.f,0.f }, Vec3f{ 2.0f,0.f,0.f }));
+    //printf("%f\n", EuclidDistanceFunc(Vec3f{ 1.f,0.f,0.f }, Vec3f{ 2.0f,0.f,0.f }));
 
 
     using milli = std::chrono::milliseconds;
     auto start = std::chrono::high_resolution_clock::now();
 
     auto dbscan = DBSCAN<Vec3f, float>();
-    dbscan.Run(&pts, 3, 0.4f, 4, EuclidDistanceFunc);
+    dbscan.Run(&pts, 3, 0.4f, 4);
 
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Run() took "
