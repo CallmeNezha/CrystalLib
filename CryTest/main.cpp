@@ -9,6 +9,11 @@
 #include "../src/DBSCAN.h"
 #include <opencv2/opencv.hpp>
 
+
+#include <chrono>
+#include "../src/kdtree.h"
+
+
 using namespace Crystal;
 
 struct Vec3f {
@@ -21,6 +26,9 @@ struct Vec3f {
         };
         float e[3];
     };
+    float operator [](int i) const {
+        return e[i];
+    }
 };
 
 std::vector<Vec3f> GenerateRandomDisturbCluster(const Vec3f& center, float rad, int num) {
@@ -34,9 +42,9 @@ std::vector<Vec3f> GenerateRandomDisturbCluster(const Vec3f& center, float rad, 
     return rc;
 }
 
+
 int main(int argc, char** argv) {
 
-    
     cv::Mat atom_image = cv::Mat( 1000, 1000, CV_8UC3, cv::Scalar(255,255,255) );
 
 
@@ -59,8 +67,17 @@ int main(int argc, char** argv) {
 
     printf("%f\n", EuclidDistanceFunc(Vec3f{ 1.f,0.f,0.f }, Vec3f{ 2.0f,0.f,0.f }));
 
+
+    using milli = std::chrono::milliseconds;
+    auto start = std::chrono::high_resolution_clock::now();
+
     auto dbscan = DBSCAN<Vec3f, float>();
-    dbscan.Run(pts, 0.4f, 4, EuclidDistanceFunc);
+    dbscan.Run(&pts, 3, 0.4f, 4, EuclidDistanceFunc);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "Run() took "
+        << std::chrono::duration_cast<milli>(end - start).count()
+        << " milliseconds\n";
 
 
 
